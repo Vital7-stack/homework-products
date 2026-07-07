@@ -13,31 +13,35 @@ def test_category_initialization():
     p1 = Product("Чай", "Чёрный чай", 250.5, 10)
     p2 = Product("Кофе", "Арабика", 400.0, 5)
     c = Category("Напитки", "Все напитки", [p1, p2])
+
     assert c.name == "Напитки"
     assert c.description == "Все напитки"
-    assert len(c.products) == 2
-    assert c.products[0] is p1
-    assert c.products[1] is p2
+
+    # ИСПРАВЛЕНО: products теперь возвращает строку, а не список.
+    # Проверяем, что в строке есть оба товара в нужном формате.
+    output = c.products
+    assert "Чай, 250.5 руб. Остаток: 10 шт." in output
+    assert "Кофе, 400.0 руб. Остаток: 5 шт." in output
 
 
 def test_category_counters_increase():
-    Category.category_count = 0
-    Category.product_count = 0
+    initial_cat_count = Category.category_count
+    initial_prod_count = Category.product_count
 
     p1 = Product("Чай", "Чёрный чай", 250.5, 10)
     p2 = Product("Кофе", "Арабика", 400.0, 5)
 
     c1 = Category("Напитки", "Все напитки", [p1, p2])
-    assert Category.category_count == 1
-    assert Category.product_count == 2
-    assert c1.name == "Напитки"
+    assert c1.name == "Напитки"                 # <-- теперь c1 используется
+    assert Category.category_count == initial_cat_count + 1
+    assert Category.product_count == initial_prod_count + 2
 
     c2 = Category("Сладости", "Всё сладкое", [])
-    assert Category.category_count == 2
-    assert Category.product_count == 2
-    assert c2.name == "Сладости"
+    assert c2.name == "Сладости"                 # <-- теперь c2 используется
+    assert Category.category_count == initial_cat_count + 2
+    assert Category.product_count == initial_prod_count + 2
 
     c3 = Category("Фрукты", "Свежие фрукты", [Product("Яблоко", "Зелёное", 120.0, 20)])
-    assert Category.category_count == 3
-    assert Category.product_count == 3
-    assert c3.name == "Фрукты"
+    assert c3.name == "Фрукты"                  # <-- теперь c3 используется
+    assert Category.category_count == initial_cat_count + 3
+    assert Category.product_count == initial_prod_count + 3

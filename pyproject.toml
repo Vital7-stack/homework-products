@@ -11,7 +11,10 @@ authors = [
 ]
 requires-python = "^3.14"
 dependencies = []
-# packages здесь НЕ нужны, потому что мы в режиме package-mode = false
+
+[tool.poetry]
+packages = [{include = "src"}]
+# package-mode = false  <-- УДАЛИТЬ эту строку
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.0"
@@ -22,6 +25,4 @@ mypy = "^1.10.0"
 [tool.flake8]
 max-line-length = 109
 extend-ignore = ["E203"]
-
-[tool.poetry]
-package-mode = false
+exclude = [".venv/", ".idea/", "__pycache__/"]

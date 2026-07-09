@@ -1,5 +1,8 @@
-from src.products import Product, Category
+import pytest
+from src.products import Product, Smartphone, LawnGrass, Category
 
+
+# --- Базовые тесты (без дублей) ---
 
 def test_product_initialization() -> None:
     p = Product("Чай", "Чёрный чай", 250.5, 10)
@@ -52,8 +55,6 @@ def test_category_counters_increase() -> None:
     assert Category.product_count == initial_prod_count + 3
 
 
-# --- Новые тесты для магических методов ---
-
 def test_product_str() -> None:
     p = Product("Чай", "Чёрный чай", 250.5, 10)
     expected = "Чай, 250.5 руб. Остаток: 10 шт."
@@ -69,7 +70,7 @@ def test_category_str() -> None:
     assert str(c) == expected
 
 
-def test_product_add() -> None:
+def test_product_add_same_type() -> None:
     # a: 100 × 10 = 1000
     a = Product("Товар А", "Описание А", 100.0, 10)
     # b: 200 × 2 = 400
@@ -77,3 +78,71 @@ def test_product_add() -> None:
     # Итого: 1400
     total = a + b
     assert total == 1400.0
+
+
+# --- Тесты для новых классов и проверок типов ---
+
+def test_smartphone_inheritance() -> None:
+    s = Smartphone(
+        name="iPhone",
+        description="Смартфон Apple",
+        price=100000.0,
+        quantity=5,
+        efficiency=95.0,
+        model="15 Pro",
+        memory=256,
+        color="серый",
+    )
+    assert isinstance(s, Product)
+    assert s.model == "15 Pro"
+    assert s.memory == 256
+    assert s.color == "серый"
+
+
+def test_lawn_grass_inheritance() -> None:
+    g = LawnGrass(
+        name="Газонная трава",
+        description="Смесь для газона",
+        price=2000.0,
+        quantity=10,
+        country="Россия",
+        germination_period=14,
+        color="зелёный",
+    )
+    assert isinstance(g, Product)
+    assert g.country == "Россия"
+    assert g.germination_period == 14
+    assert g.color == "зелёный"
+
+
+def test_add_different_types_raises_type_error() -> None:
+    s = Smartphone(
+        name="Phone",
+        description="",
+        price=50000.0,
+        quantity=2,
+        efficiency=80.0,
+        model="X",
+        memory=128,
+        color="чёрный",
+    )
+    g = LawnGrass(
+        name="Трава",
+        description="",
+        price=3000.0,
+        quantity=5,
+        country="Китай",
+        germination_period=7,
+        color="зелёный",
+    )
+    with pytest.raises(TypeError):
+        _ = s + g
+
+
+def test_add_product_wrong_type_raises_type_error() -> None:
+    c = Category("Электроника", "Смартфоны и аксессуары", [])
+    with pytest.raises(TypeError):
+        c.add_product("не продукт")  # type: ignore
+
+    with pytest.raises(TypeError):
+        c.add_product(123)  # type: ignore

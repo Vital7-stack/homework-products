@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List
 
 
 class Product:
@@ -26,13 +26,23 @@ class Product:
             print("Цена не должна быть нулевая или отрицательная")
 
     @classmethod
-    def new_product(cls, data: Dict[str, Any]) -> "Product":
+    def new_product(cls, data: dict) -> "Product":
         return cls(
             name=data["name"],
             description=data.get("description", ""),
             price=data["price"],
             quantity=data["quantity"],
         )
+
+    # Задание 1: строковое представление Product
+    def __str__(self) -> str:
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
+
+    # Задание 2: сложение двух продуктов (возвращает общую стоимость на складе)
+    def __add__(self, other: "Product") -> float:
+        if not isinstance(other, Product):
+            return NotImplemented
+        return (self.price * self.quantity) + (other.price * other.quantity)
 
 
 class Category:
@@ -56,10 +66,12 @@ class Category:
         self.__products.append(product)
         Category.product_count += 1
 
+    # Оптимизированный геттер: теперь использует __str__ у Product
     @property
     def products(self) -> str:
-        # Это гарантированно укладывается в лимит длины строки и читается лучше
-        return "\n".join(
-            f"{p.name}, {p.price} руб. Остаток: {p.quantity} шт."
-            for p in self.__products
-        )
+        return "\n".join(str(p) for p in self.__products)
+
+    # Задание 1: строковое представление Category
+    def __str__(self) -> str:
+        total_quantity = sum(p.quantity for p in self.__products)
+        return f"{self.name}, количество продуктов: {total_quantity} шт."

@@ -10,11 +10,10 @@ authors = [
     {name = "VITAL", email = "zinabir7@gmail.com"}
 ]
 requires-python = "^3.14"
-dependencies = []
+dependencies = []  # <-- обязательно!
 
 [tool.poetry]
 packages = [{include = "src"}]
-# package-mode = false  <-- УДАЛИТЬ эту строку
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.0"

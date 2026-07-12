@@ -1,5 +1,7 @@
+import io
+import sys
 import pytest
-from src.products import Product, Smartphone, LawnGrass, Category
+from src.products import BaseProduct, Product, Smartphone, LawnGrass, Category
 
 
 # --- Базовые тесты (без дублей) ---
@@ -146,3 +148,84 @@ def test_add_product_wrong_type_raises_type_error() -> None:
 
     with pytest.raises(TypeError):
         c.add_product(123)  # type: ignore
+
+
+# --- НОВЫЕ ТЕСТЫ: Abstract Base Class и LoggingMixin ---
+
+def test_cannot_instantiate_base_product() -> None:
+    """Нельзя создать экземпляр абстрактного класса напрямую."""
+    with pytest.raises(TypeError):
+        BaseProduct()
+
+
+def test_logging_mixin_output_for_product(capsys) -> None:
+    """Миксин должен выводить строку создания объекта Product в консоль."""
+    p = Product("Чай", "Чёрный чай", 250.5, 10)
+    captured = capsys.readouterr()
+
+    # Проверяем, что строка вывода содержит имя класса и аргументы
+    assert "Product('Чай', 'Чёрный чай', 250.5, 10)" in captured.out
+
+
+def test_logging_mixin_output_for_smartphone(capsys) -> None:
+    """Миксин должен корректно работать и для наследников (Smartphone)."""
+    s = Smartphone(
+        name="iPhone",
+        description="Смартфон Apple",
+        price=100000.0,
+        quantity=5,
+        efficiency=95.0,
+        model="15 Pro",
+        memory=256,
+        color="серый",
+    )
+    captured = capsys.readouterr()
+
+    # Достаточно проверить, что имя класса и имя продукта есть в выводе
+    assert "Smartphone" in captured.out
+    assert "'iPhone'" in captured.out
+
+
+def test_logging_mixin_output_for_lawn_grass(capsys) -> None:
+    """Миксин должен корректно работать и для LawnGrass."""
+    g = LawnGrass(
+        name="Газонная трава",
+        description="Смесь для газона",
+        price=2000.0,
+        quantity=10,
+        country="Россия",
+        germination_period=14,
+        color="зелёный",
+    )
+    captured = capsys.readouterr()
+
+    assert "LawnGrass" in captured.out
+    assert "'Газонная трава'" in captured.out
+
+
+def test_base_methods_implemented_in_product() -> None:
+    """Product должен реализовывать все абстрактные методы BaseProduct."""
+    p = Product("Тест", "Описание теста", 123.45, 1)
+
+    assert p.get_name() == "Тест"
+    assert p.get_price() == 123.45
+    assert "Тест: Описание теста" in p.describe()
+
+
+def test_describe_overridden_in_smartphone() -> None:
+    """Smartphone должен переопределять describe и включать свои специфичные поля."""
+    s = Smartphone("S1", "Смартфон", 15000, 3, 90, "A1", 128, "blue")
+    desc = s.describe()
+
+    assert "смартфон" in desc.lower()
+    assert "A1" in desc
+    assert "128" in desc
+
+
+def test_describe_overridden_in_lawn_grass() -> None:
+    """LawnGrass должен переопределять describe и включать свои специфичные поля."""
+    g = LawnGrass("G1", "Трава", 400, 5, "DE", 5, "green")
+    desc = g.describe()
+
+    assert "газонная трава" in desc.lower()
+    assert "DE" in desc

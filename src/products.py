@@ -1,7 +1,45 @@
+from abc import ABC, abstractmethod
 from typing import List, Any
 
 
-class Product:
+class BaseProduct(ABC):
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_price(self) -> float:
+        pass
+
+    @abstractmethod
+    def describe(self) -> str:
+        pass
+
+
+class LoggingInitMixin:
+    """Миксин для логирования создания объекта."""
+    def __init__(self) -> None:
+        # Логируем ПОСЛЕ того, как все атрибуты уже установлены в Product/наследнике
+        cls_name = self.__class__.__name__
+
+        # Собираем значимые атрибуты для лога (можно расширить при необходимости)
+        parts = []
+        if hasattr(self, "name"):
+            parts.append(repr(self.name))
+        if hasattr(self, "description"):
+            parts.append(repr(self.description))
+        if hasattr(self, "price"):
+            parts.append(str(self.price))
+        if hasattr(self, "quantity"):
+            parts.append(str(self.quantity))
+
+        params_str = ", ".join(parts)
+        print(f"{cls_name}({params_str})")
+
+        super().__init__()
+
+
+class Product(LoggingInitMixin, BaseProduct):
     def __init__(
         self,
         name: str,
@@ -9,10 +47,14 @@ class Product:
         price: float,
         quantity: int,
     ) -> None:
+        # 1. Сначала устанавливаем атрибуты
         self.name = name
         self.description = description
         self.__price = price
         self.quantity = quantity
+
+        # 2. Потом вызываем миксин (он залогирует объект с уже заполненными полями)
+        super().__init__()
 
     @property
     def price(self) -> float:
@@ -33,6 +75,15 @@ class Product:
             price=data["price"],
             quantity=data["quantity"],
         )
+
+    def get_name(self) -> str:
+        return self.name
+
+    def get_price(self) -> float:
+        return self.price
+
+    def describe(self) -> str:
+        return f"{self.name}: {self.description}, цена {self.price}, кол-во {self.quantity}"
 
     def __str__(self) -> str:
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
@@ -59,11 +110,18 @@ class Smartphone(Product):
         memory: int,
         color: str,
     ) -> None:
+        # Сначала инициализируем родителя (он установит базовые поля и вызовет миксин)
         super().__init__(name, description, price, quantity)
+
+        # Потом добавляем специфичные поля
         self.efficiency = efficiency
         self.model = model
         self.memory = memory
         self.color = color
+
+    def describe(self) -> str:
+        base = super().describe()
+        return f"{base}; смартфон: {self.model}, память {self.memory}, цвет {self.color}, эффективность {self.efficiency}"
 
 
 class LawnGrass(Product):
@@ -74,13 +132,17 @@ class LawnGrass(Product):
         price: float,
         quantity: int,
         country: str,
-        germination_period: int,
+        germination_period: str,
         color: str,
     ) -> None:
         super().__init__(name, description, price, quantity)
         self.country = country
         self.germination_period = germination_period
         self.color = color
+
+    def describe(self) -> str:
+        base = super().describe()
+        return f"{base}; газонная трава: страна {self.country}, период прорастания {self.germination_period}, цвет {self.color}"
 
 
 class Category:

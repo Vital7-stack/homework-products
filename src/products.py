@@ -1,5 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import List, Any
+from typing import List
+
+
+class LoggingMixin:
+    def __init__(self, *args, **kwargs):
+        # В момент вызова этого __init__ все атрибуты уже присвоены в Product.__init__,
+        # поэтому repr(self) будет корректным.
+        print(repr(self))
+        super().__init__()
 
 
 class BaseProduct(ABC):
@@ -16,30 +24,7 @@ class BaseProduct(ABC):
         pass
 
 
-class LoggingInitMixin:
-    """Миксин для логирования создания объекта."""
-    def __init__(self) -> None:
-        # Логируем ПОСЛЕ того, как все атрибуты уже установлены в Product/наследнике
-        cls_name = self.__class__.__name__
-
-        # Собираем значимые атрибуты для лога (можно расширить при необходимости)
-        parts = []
-        if hasattr(self, "name"):
-            parts.append(repr(self.name))
-        if hasattr(self, "description"):
-            parts.append(repr(self.description))
-        if hasattr(self, "price"):
-            parts.append(str(self.price))
-        if hasattr(self, "quantity"):
-            parts.append(str(self.quantity))
-
-        params_str = ", ".join(parts)
-        print(f"{cls_name}({params_str})")
-
-        super().__init__()
-
-
-class Product(LoggingInitMixin, BaseProduct):
+class Product(BaseProduct, LoggingMixin):
     def __init__(
         self,
         name: str,
@@ -47,52 +32,45 @@ class Product(LoggingInitMixin, BaseProduct):
         price: float,
         quantity: int,
     ) -> None:
-        # 1. Сначала устанавливаем атрибуты
         self.name = name
         self.description = description
-        self.__price = price
+        # Убрали __price (name mangling), теперь это обычное поле price
+        self.price = price
         self.quantity = quantity
-
-        # 2. Потом вызываем миксин (он залогирует объект с уже заполненными полями)
+        # Вызываем дальше по цепочке наследования
         super().__init__()
 
+    def __repr__(self) -> str:
+        return f"Product({self.name!r}, {self.description!r}, {self.price}, {self.quantity})"
+
+    def __str__(self) -> str:
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
+
+    # Свойство для контроля цены (валидация при присваивании)
     @property
     def price(self) -> float:
-        return self.__price
+        return self._price
 
     @price.setter
     def price(self, new_price: float) -> None:
         if new_price > 0:
-            self.__price = new_price
+            self._price = new_price
         else:
             print("Цена не должна быть нулевая или отрицательная")
-
-    @classmethod
-    def new_product(cls, data: dict) -> "Product":
-        return cls(
-            name=data["name"],
-            description=data.get("description", ""),
-            price=data["price"],
-            quantity=data["quantity"],
-        )
 
     def get_name(self) -> str:
         return self.name
 
     def get_price(self) -> float:
-        return self.price
+        return self._price
 
     def describe(self) -> str:
-        return f"{self.name}: {self.description}, цена {self.price}, кол-во {self.quantity}"
+        return f"{self.name}: {self.description}"
 
-    def __str__(self) -> str:
-        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
-
-    def __add__(self, other: Any) -> float:
+    def __add__(self, other: object) -> float:
+        # Складываем только объекты ТОЧНО того же класса
         if type(self) is not type(other):
-            raise TypeError(
-                "Можно складывать только объекты одного класса продуктов"
-            )
+            raise TypeError("Складывать можно только объекты одного типа продукта")
         if not isinstance(other, Product):
             return NotImplemented
         return (self.price * self.quantity) + (other.price * other.quantity)
@@ -110,18 +88,20 @@ class Smartphone(Product):
         memory: int,
         color: str,
     ) -> None:
-        # Сначала инициализируем родителя (он установит базовые поля и вызовет миксин)
-        super().__init__(name, description, price, quantity)
-
-        # Потом добавляем специфичные поля
         self.efficiency = efficiency
         self.model = model
         self.memory = memory
         self.color = color
+        # Передаём только то, что нужно Product
+        super().__init__(name, description, price, quantity)
+
+    def __repr__(self) -> str:
+        # Теперь self.price работает без проблем
+        return f"Smartphone({self.name!r}, {self.description!r}, {self.price}, {self.quantity})"
 
     def describe(self) -> str:
         base = super().describe()
-        return f"{base}; смартфон: {self.model}, память {self.memory}, цвет {self.color}, эффективность {self.efficiency}"
+        return f"{base}, модель: {self.model}, память: {self.memory} ГБ, цвет: {self.color}"
 
 
 class LawnGrass(Product):
@@ -135,14 +115,18 @@ class LawnGrass(Product):
         germination_period: str,
         color: str,
     ) -> None:
-        super().__init__(name, description, price, quantity)
         self.country = country
         self.germination_period = germination_period
         self.color = color
+        super().__init__(name, description, price, quantity)
+
+    def __repr__(self) -> str:
+        return f"LawnGrass({self.name!r}, {self.description!r}, {self.price}, {self.quantity})"
 
     def describe(self) -> str:
         base = super().describe()
-        return f"{base}; газонная трава: страна {self.country}, период прорастания {self.germination_period}, цвет {self.color}"
+        # Добавляем фразу, чтобы тест test_describe_overridden_in_lawn_grass проходил
+        return f"{base}, газонная трава, страна: {self.country}, период всхожести: {self.germination_period}"
 
 
 class Category:
@@ -152,31 +136,26 @@ class Category:
     def __init__(self, name: str, description: str, products: List[Product]) -> None:
         self.name = name
         self.description = description
-
-        for p in products:
-            if not isinstance(p, Product):
-                raise TypeError(
-                    "В категорию можно добавлять только объекты Product "
-                    "или его наследников"
-                )
-        self.__products: List[Product] = products
+        self._products: List[Product] = []
 
         Category.category_count += 1
-        Category.product_count += len(products)
+        for p in products:
+            self.add_product(p)
 
     def add_product(self, product: Product) -> None:
         if not isinstance(product, Product):
-            raise TypeError(
-                "В категорию можно добавлять только объекты Product "
-                "или его наследников"
-            )
-        self.__products.append(product)
+            raise TypeError("В категорию можно добавить только объект Product")
+        self._products.append(product)
         Category.product_count += 1
 
     @property
     def products(self) -> str:
-        return "\n".join(str(p) for p in self.__products)
+        parts = [f"{p.name}, {p.price} руб. Остаток: {p.quantity} шт." for p in self._products]
+        return "; ".join(parts)
+
+    @property
+    def total_quantity(self) -> int:
+        return sum(p.quantity for p in self._products)
 
     def __str__(self) -> str:
-        total_quantity = sum(p.quantity for p in self.__products)
-        return f"{self.name}, количество продуктов: {total_quantity} шт."
+        return f"{self.name}, количество продуктов: {self.total_quantity} шт."

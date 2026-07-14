@@ -217,3 +217,37 @@ def test_describe_overridden_in_lawn_grass() -> None:
     desc = g.describe()
     assert "газонная трава" in desc.lower()
     assert "DE" in desc
+
+
+def test_product_creation_with_zero_quantity_raises_value_error():
+    with pytest.raises(ValueError) as exc_info:
+        Product("Test Product", "Description", 100.0, 0)
+    assert str(exc_info.value) == "Товар с нулевым количеством не может быть добавлен"
+
+
+def test_product_creation_with_positive_quantity_works():
+    p = Product("Valid Product", "Good item", 50.0, 1)
+    assert p.quantity == 1
+    assert p.price == 50.0
+
+
+def test_category_average_price_empty_returns_zero():
+    cat = Category("Empty Cat", "No products")
+    assert cat.average_price() == 0.0
+
+
+def test_category_average_price_with_products():
+    cat = Category("Electronics", "Gadgets")
+    p1 = Product("Phone", "Smart", 500.0, 2)
+    p2 = Product("Tablet", "Big", 300.0, 1)
+    cat.add_product(p1)
+    cat.add_product(p2)
+    # (500 + 300) / 2 = 400
+    assert cat.average_price() == 400.0
+
+
+def test_category_average_price_single_product():
+    cat = Category("Single", "One item")
+    p = Product("Only One", "Solo", 120.0, 5)
+    cat.add_product(p)
+    assert cat.average_price() == 120.0
